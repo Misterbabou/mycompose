@@ -5,7 +5,7 @@ Homelab docker compose helper
 ## Features
 
 - Detect automatically where docker-compose.yml are located
-- Check Update of running docker-compose images
+- Check Update of running docker-compose images (work on AMD64 and ARM)
 - Update docker-compose images with a backup (volume and version of previous latest) locally
 - Rollback to previous update with the previous backup
 - Start and stop docker-compose

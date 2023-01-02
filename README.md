@@ -2,6 +2,10 @@
 
 Homelab docker compose helper
 
+## Demo
+
+![demo](./assets/demo.gif)
+
 ## Features
 
 - Detect automatically where docker-compose.yml are located

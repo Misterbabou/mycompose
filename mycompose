@@ -33,7 +33,7 @@ SCRIPT_LOC="$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 SETDIR_LOC="/etc/mycompose.conf"
 ###FUNCTION compatibility depending on argument provided
 LIST_1_ARG="help list info compatibility check"
-LIST_2_ARG="start stop info compatibility check update restore resume create setdir"
+LIST_2_ARG="start stop info compatibility check update restore resume create setdir discord_update"
 LIST_3_ARG="update edit"
 
 function check_admin {
@@ -54,6 +54,7 @@ function help {
     echo -e '  create  \tCreate the template directory for a new docker-compose'
     echo -e '  check  \tCheck update images for docker-compose'
     echo -e '  compatibility Check compatibility for upadate, restore and resume command'
+    echo -e '  discord_update  \tSend Discord webhook for available update'
     echo -e '  edit  \tEdit docker-compose.yml with vi or nano'
     echo -e '  info  \tCheck State and running images'
     echo -e '  list  \tList all available docker-compose to manage'
@@ -72,6 +73,7 @@ function help {
     echo -e '  mycompose edit <COMPOSE> -nano  \tEdit docker-compose.yml with vi'
     echo -e '  mycompose create <COMPOSE>'
     echo -e '  mycompose check  \t\t\tCheck all of your docker-compose\n  mycompose check <COMPOSE>  \t\tCheck for provided COMPOSE'
+    echo -e '  mycompose discord_update <webhook_url>'
     echo -e '  mycompose compatibility  \t\tCompatibility all of your docker-compose\n  mycompose compatibility <COMPOSE>  \tCompatibility for provided COMPOSE'
     echo -e '  mycompose info  \t\t\tInfo all of your docker-compose\n  mycompose info <COMPOSE>  \t\tInfo for provided COMPOSE'
     echo -e '  mycompose list  \t\t\tList all of your docker-compose'
@@ -334,8 +336,27 @@ function check {
                         fi
                 fi
         done
-
 }
+
+function discord_update {
+    if ! command -v discord.sh &> /dev/null
+    then
+        check_admin
+        echo "installing discord.sh from https://github.com/fieu/discord.sh"
+        curl -L https://github.com/fieu/discord.sh/releases/download/v2.0.0/discord.sh -o /usr/local/bin/discord.sh
+        chmod +x /usr/local/bin/discord.sh
+    fi
+    DISCORD_WEBHOOK=$COMPOSE
+    COMPOSE=""
+
+    check >> /tmp/update_discord
+    sed -i '1,/Checking update .../d' /tmp/update_discord
+    sed -i -e 's/---/ /g' -e 's/^|/`/g' -e 's/|$/`/g' -e 's/|//g' -e 's/Up to date/:white_check_mark:/g' -e 's/Update Available/:x:      /g' -e 's/docker-compose is down/:zzz: /g' /tmp/update_discord
+
+    discord.sh --webhook-url "$DISCORD_WEBHOOK" --text "Docker Update check" --username "$HOSTNAME" --description "$(jq -Rs . </tmp/update_discord | cut -c 2- | rev | cut -c 2- | rev)"
+    rm /tmp/update_discord
+}
+
 
 function update {
     #Check ADMIN RIGHT
@@ -547,7 +568,7 @@ case $# in
                 fi
                 COMPOSE=$2
                 #SPECIAL for CREATE COMMAND
-                if [ "$FUNCTION" == "create" ] || [ "$FUNCTION" == "setdir" ]; then
+                if [ "$FUNCTION" == "create" ] || [ "$FUNCTION" == "setdir" ] ||  [ "$FUNCTION" == "discord_update" ]; then
                         "$FUNCTION"
                 else
                         if [ -d "${DOCKER_DIR}/$COMPOSE" ]; then

@@ -23,7 +23,8 @@
 
 # VERSION 1.0.1 - Add check_docker_dir automatically
 # VERSION 1.0.2 - Add edit, setdir command and docker compose plugin capabilities
-# VERSION 1.0.3 - add update_force and change some config to have autocompletion
+# VERSION 1.0.4 - add update_force and change some config to have autocompletion
+# VERSION 1.0.5 - add logs command
 
 # Highly recommended to keep those variables
 ###IF you change this this should be a subpath
@@ -34,7 +35,7 @@ SCRIPT_LOC="$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 SETDIR_LOC="/etc/mycompose.conf"
 ###FUNCTION compatibility depending on argument provided
 LIST_1_ARG="help list info compatibility check"
-LIST_2_ARG="start stop info compatibility check update restore resume create setdir discord_update update_force"
+LIST_2_ARG="start stop info compatibility check update restore resume create setdir discord_update update_force logs"
 LIST_3_ARG="edit"
 
 function check_admin {
@@ -62,6 +63,7 @@ function help {
     echo -e '  setdir  \t\tSet root docker-compose directory usefull command if docker-compose ls is not working as intended.\n\t\t\tCommand will check if docker-compose.yml are available'
     echo -e '  start  \t\tExecute a docker-compose up -d'
     echo -e '  stop  \t\tExecute a docker-compose down'
+    echo -e '  logs  \t\tExecute a docker-compose logs -f'
     echo -e '  update  \t\tUpdate a docker-compose after checking compatibility and new-images (check). \n\t\t\tThe Update command is making a backup of image version and volume'
     echo -e '\t\t\tRollback previous update state with restore command.'
     echo -e '  update_force  \tUpdate command without checks NOT RECOMMENDED'
@@ -82,6 +84,7 @@ function help {
     echo -e '  mycompose setdir <FULLPATH> \t\tAdd or change docker-compose root dir\n  mycompose setdir delete  \t\tDelete existing setdir'
     echo -e '  mycompose start <COMPOSE>'
     echo -e '  mycompose stop <COMPOSE>'
+    echo -e '  mycompose logs <COMPOSE>'
     echo -e '  mycompose update <COMPOSE>\n  mycompose update_force <COMPOSE> \tForce update without check : NOT RECOMMENDED'
     echo -e '  mycompose restore <COMPOSE>'
     echo -e '  mycompose resume <COMPOSE>'
@@ -116,6 +119,11 @@ function start {
 
 function stop {
     $COMPOSE_CMD -f "$COMPOSE_LOC" down
+}
+
+function logs {
+    info
+    $COMPOSE_CMD -f "$COMPOSE_LOC" logs -f
 }
 
 function edit {
@@ -183,7 +191,7 @@ function compatibility {
 
 function info {
     echo "---"
-    echo "Info for each Docker-compose: "
+    echo "Info for Docker-compose: "
     if [ ! -n "$COMPOSE" ]; then
         DIR_TO_CHECK="*"
     else

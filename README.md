@@ -51,9 +51,24 @@ tree example:
 sudo curl -L https://github.com/Misterbabou/mycompose/releases/download/<version>/mycompose -o /usr/local/bin/mycompose
 ```
 
-- Make this command executable
+- Make this command executable :
 ```
 sudo chmod +x /usr/local/bin/mycompose
+```
+
+- Download completion for docker version > 2.3.0 (Change <version> see https://github.com/Misterbabou/mycompose/releases) : 
+```
+sudo curl -L https://github.com/Misterbabou/mycompose/releases/download/<version>/mycompose_completion -o /etc/bash_completion.d/mycompose_completion
+```
+
+- Make this command executable :
+```
+sudo chmod +x /etc/bash_completion.d/mycompose_completion
+```
+
+- source the completion :
+```
+source /etc/bash_completion.d/mycompose_completion
 ```
 
 - Run your first command :

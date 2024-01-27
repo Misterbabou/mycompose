@@ -23,6 +23,7 @@
 
 # VERSION 1.0.1 - Add check_docker_dir automatically
 # VERSION 1.0.2 - Add edit, setdir command and docker compose plugin capabilities
+# VERSION 1.0.3 - add update_force and change some config to have autocompletion
 
 # Highly recommended to keep those variables
 ###IF you change this this should be a subpath
@@ -33,8 +34,8 @@ SCRIPT_LOC="$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 SETDIR_LOC="/etc/mycompose.conf"
 ###FUNCTION compatibility depending on argument provided
 LIST_1_ARG="help list info compatibility check"
-LIST_2_ARG="start stop info compatibility check update restore resume create setdir discord_update"
-LIST_3_ARG="update edit"
+LIST_2_ARG="start stop info compatibility check update restore resume create setdir discord_update update_force"
+LIST_3_ARG="edit"
 
 function check_admin {
     #Admin right check for the rest of commands
@@ -50,22 +51,23 @@ function help {
     echo -e '---\nCOMPOSE:\tName of your docker-compose directory'
     echo -e '---\nOPTION: \tAdditionnal option for COMMAND see bellow'
     echo -e '---\nCOMMAND:\n'
-    echo -e '  help  \tProvide help about commands'
-    echo -e '  create  \tCreate the template directory for a new docker-compose'
-    echo -e '  check  \tCheck update images for docker-compose'
-    echo -e '  compatibility Check compatibility for upadate, restore and resume command'
+    echo -e '  help  \t\tProvide help about commands'
+    echo -e '  create  \t\tCreate the template directory for a new docker-compose'
+    echo -e '  check  \t\tCheck update images for docker-compose'
+    echo -e '  compatibility \tCheck compatibility for upadate, restore and resume command'
     echo -e '  discord_update  \tSend Discord webhook for available update'
-    echo -e '  edit  \tEdit docker-compose.yml with vi or nano'
-    echo -e '  info  \tCheck State and running images'
-    echo -e '  list  \tList all available docker-compose to manage'
-    echo -e '  setdir  \tSet root docker-compose directory usefull command if docker-compose ls is not working as intended.\n\t\tCommand will check if docker-compose.yml are available'
-    echo -e '  start  \tExecute a docker-compose up -d'
-    echo -e '  stop  \tExecute a docker-compose down'
-    echo -e '  update  \tUpdate a docker-compose after checking compatibility and new-images (check). \n\t\tThe Update command is making a backup of image version and volume'
-    echo -e '\t\tRollback previous update state with restore command.'
-    echo -e '  restore  \tRollback if previous update break your docker-compose.\n\t\tIt will fix your docker compose to a specific version use resume to go back to previous TAGS'
-    echo -e '\t\tIt Will create and appdata directory with docker-compose to save modification since the update'
-    echo -e '  resume  \tResume to Initial TAG useful only after a restore and a known new version will not break your docker-compose. '
+    echo -e '  edit  \t\tEdit docker-compose.yml with vi or nano'
+    echo -e '  info  \t\tCheck State and running images'
+    echo -e '  list  \t\tList all available docker-compose to manage'
+    echo -e '  setdir  \t\tSet root docker-compose directory usefull command if docker-compose ls is not working as intended.\n\t\t\tCommand will check if docker-compose.yml are available'
+    echo -e '  start  \t\tExecute a docker-compose up -d'
+    echo -e '  stop  \t\tExecute a docker-compose down'
+    echo -e '  update  \t\tUpdate a docker-compose after checking compatibility and new-images (check). \n\t\t\tThe Update command is making a backup of image version and volume'
+    echo -e '\t\t\tRollback previous update state with restore command.'
+    echo -e '  update_force  \tUpdate command without checks NOT RECOMMENDED'
+    echo -e '  restore  \t\tRollback if previous update break your docker-compose.\n\t\t\tIt will fix your docker compose to a specific version use resume to go back to previous TAGS'
+    echo -e '\t\t\tIt Will create and appdata directory with docker-compose to save modification since the update'
+    echo -e '  resume  \t\tResume to Initial TAG useful only after a restore and a known new version will not break your docker-compose. '
     echo -e '---'
     echo -e 'EXEMPLE: \n'
     echo -e '  mycompose help'
@@ -80,7 +82,7 @@ function help {
     echo -e '  mycompose setdir <FULLPATH> \t\tAdd or change docker-compose root dir\n  mycompose setdir delete  \t\tDelete existing setdir'
     echo -e '  mycompose start <COMPOSE>'
     echo -e '  mycompose stop <COMPOSE>'
-    echo -e '  mycompose update <COMPOSE>\n  mycompose update <COMPOSE> -f \tForce update without check : NOT RECOMMENDED'
+    echo -e '  mycompose update <COMPOSE>\n  mycompose update_force <COMPOSE> \tForce update without check : NOT RECOMMENDED'
     echo -e '  mycompose restore <COMPOSE>'
     echo -e '  mycompose resume <COMPOSE>'
 }
@@ -231,10 +233,6 @@ function list {
 function check {
         echo "---"
         echo "Checking update ..."
-        arch_local=$(uname -m)
-        if [ "$arch_local" != "x86_64" ]; then
-                echo "Your Architecture is not x86_64 Update Check can take a long time..."
-        fi
         if [ ! -n "$COMPOSE" ]; then
                 DIR_TO_CHECK="*"
         else
@@ -262,71 +260,11 @@ function check {
                                                 echo "For security reasons, this script only allows updates of already pulled images." 1>&2
                                                 exit 1
                                         fi
-
-                                        if [ "$arch_local" == "x86_64" ]; then
-                                        #Classic Upadate Check
-                                                # check if all required tools are installed
-                                                TOOLS_REQUIRED="jq"
-                                                for TOOL_NAME in $TOOLS_REQUIRED ; do
-                                                        TOOL_PATH=$(which $TOOL_NAME)
-                                                        if [ -z "$TOOL_PATH" ] ; then
-                                                                echo "Could not find required tool: $TOOL_NAME" 1>&2
-                                                                echo "To use this script, you need to install the following tools:" 1>&2
-                                                                echo "  $TOOLS_REQUIRED" 1>&2
-                                                        exit 1
-                                                        fi
-                                                done
-
-                                                # check if first part of image name contains a dot, then it's a registry domain and not from hub.docker.com
-                                                if [[ $(echo $IMAGE_ABSOLUTE | cut -d : -f 1 | cut -d / -f 1) == *"."* ]] ; then
-                                                    IMAGE_REGISTRY=$(echo $IMAGE_ABSOLUTE | cut -d / -f 1)
-                                                    IMAGE_REGISTRY_API=$IMAGE_REGISTRY
-                                                    IMAGE_PATH_FULL=$(echo $IMAGE_ABSOLUTE | cut -d / -f 2-)
-                                                elif [[ $(echo $IMAGE_ABSOLUTE | awk -F"/" '{print NF-1}') == 0 ]] ; then
-                                                    IMAGE_REGISTRY="docker.io"
-                                                    IMAGE_REGISTRY_API="registry-1.docker.io"
-                                                    IMAGE_PATH_FULL=library/$IMAGE_ABSOLUTE
-                                                else
-                                                    IMAGE_REGISTRY="docker.io"
-                                                    IMAGE_REGISTRY_API="registry-1.docker.io"
-                                                    IMAGE_PATH_FULL=$IMAGE_ABSOLUTE
-                                                fi
-
-                                                # detect image tag
-                                                if [[ "$IMAGE_PATH_FULL" == *":"* ]] ; then
-                                                    IMAGE_PATH=$(echo $IMAGE_PATH_FULL | cut -d : -f 1)
-                                                    IMAGE_TAG=$(echo $IMAGE_PATH_FULL | cut -d : -f 2)
-                                                    IMAGE_LOCAL="$IMAGE_ABSOLUTE"
-                                                else
-                                                    IMAGE_PATH=$IMAGE_PATH_FULL
-                                                    IMAGE_TAG="latest"
-                                                    IMAGE_LOCAL="$IMAGE_ABSOLUTE:latest"
-                                                fi
-
-                                                # check remote digest
-                                                AUTH_DOMAIN_SERVICE=$(curl --head "https://${IMAGE_REGISTRY_API}/v2/" 2>&1 | grep realm | cut -f2- -d "=" | tr "," "?" | tr -d '"' | tr -d "\r")
-                                                AUTH_SCOPE="repository:${IMAGE_PATH}:pull"
-                                                AUTH_TOKEN=$(curl --silent "${AUTH_DOMAIN_SERVICE}&scope=${AUTH_SCOPE}&offline_token=1&client_id=shell" | jq -r '.token')
-                                                DIGEST_RESPONSE=$(curl --silent -H "Accept: application/vnd.docker.distribution.manifest.v2+json" \
-                                                    -H "Authorization: Bearer ${AUTH_TOKEN}" \
-                                                    "https://${IMAGE_REGISTRY_API}/v2/${IMAGE_PATH}/manifests/${IMAGE_TAG}")
-                                                RESPONSE_ERRORS=$(jq -r "try .errors[] // empty" <<< $DIGEST_RESPONSE)
-                                                if [[ -n $RESPONSE_ERRORS ]]; then
-                                                    echo "Error during API request occurred: $(echo "$RESPONSE_ERRORS" | jq -r .message)" 1>&2
-                                                    exit 1
-                                                fi
-                                                DIGEST_REMOTE=$(jq -r ".config.digest" <<< $DIGEST_RESPONSE)
-                                        else
-                                                DIGEST_REMOTE=$(docker manifest inspect $IMAGE_ABSOLUTE --verbose | grep -A 3 "config" | grep "digest" | cut -d '"' -f 4)
-                                                if [ -z "${DIGEST_REMOTE}" ] ; then
-                                                        echo "REMOTE digest: not found" 1>&2
-                                                        echo "EXITING" 1>&2
-                                                        exit 1
-                                                fi
-                                        fi
-
+                                        DIGEST_REMOTE=$(docker manifest inspect $IMAGE_ABSOLUTE --verbose 2> /dev/null | grep -A 3 "config" | grep "digest" | cut -d '"' -f 4)
                                         FOUND=$(echo $DIGEST_REMOTE | grep $DIGEST_LOCAL)
-                                        if [ -z "${FOUND}" ]; then
+                                        if [ -z "${DIGEST_REMOTE}" ]; then
+                                                echo "  Error check      | $IMAGE_ABSOLUTE"
+                                        elif [ -z "${FOUND}" ]; then
                                                 echo "  Update Available | $IMAGE_ABSOLUTE"
                                                 UPDATE_RESULT="1"
                                         else
@@ -351,7 +289,7 @@ function discord_update {
 
     check >> /tmp/update_discord
     sed -i '1,/Checking update .../d' /tmp/update_discord
-    sed -i -e 's/---/ /g' -e 's/^|/`/g' -e 's/|$/`/g' -e 's/|//g' -e 's/Up to date/:white_check_mark:/g' -e 's/Update Available/:x:      /g' -e 's/docker-compose is down/:zzz: /g' /tmp/update_discord
+    sed -i -e 's/---/ /g' -e 's/^|/`/g' -e 's/|$/`/g' -e 's/|//g' -e 's/Up to date/:white_check_mark:/g' -e 's/Update Available/:x:      /g'  -e 's/Error check/:question:      /g' -e 's/docker-compose is down/:zzz: /g' /tmp/update_discord
 
     discord.sh --webhook-url "$DISCORD_WEBHOOK" --text "Docker Update check" --username "$HOSTNAME" --description "$(jq -Rs . </tmp/update_discord | cut -c 2- | rev | cut -c 2- | rev)"
     rm /tmp/update_discord
@@ -535,6 +473,10 @@ function find_docker_dir {
 ### Script BEGIN
 
 FUNCTION=$1
+if [ "$FUNCTION" == "update_force" ]; then
+  OPTION="-f"
+  FUNCTION="update"
+fi
 # Check if the function exists
 if declare -f "$FUNCTION" > /dev/null; then
     echo "       ###Software Come With No Warranty###"
@@ -553,8 +495,7 @@ case $# in
         1)
                 function_check=$(echo $LIST_1_ARG | grep "$FUNCTION")
                 if [ ! -n "$function_check" ]; then
-                        echo "[ERROR] $FUNCTION can't be used alone add arguments"
-                        echo "Use: $SCRIPT_LOC help"
+                        echo "[ERROR] $FUNCTION can't be used alone add arguments : $SCRIPT_LOC help"
                         exit 1
                 fi
                 "$FUNCTION"
@@ -562,8 +503,7 @@ case $# in
         2)
                 function_check=$(echo $LIST_2_ARG | grep "$FUNCTION")
                 if [ ! -n "$function_check" ]; then
-                        echo "[ERROR] $FUNCTION can't be used with 2 arguments"
-                        echo "Use: $SCRIPT_LOC help"
+                        echo "[ERROR] $FUNCTION can't be used with 2 arguments : $SCRIPT_LOC help"
                         exit 1
                 fi
                 COMPOSE=$2
@@ -574,12 +514,12 @@ case $# in
                         if [ -d "${DOCKER_DIR}/$COMPOSE" ]; then
                                 cd ${DOCKER_DIR}/$COMPOSE
                                 if [ ! -f "$COMPOSE_LOC" ]; then
-                                        echo "[ERROR] Docker compose not found in  ${DOCKER_DIR}/$COMPOSE - EXITING"
+                                        echo "[ERROR] Docker compose not found in ${DOCKER_DIR}/$COMPOSE - EXITING"
                                         exit 1
                                 fi
                                 "$FUNCTION"
                         else
-                                echo "[ERROR] $COMPOSE not available use $SCRIPT_LOC list"
+                                echo "[ERROR] $COMPOSE not available : $SCRIPT_LOC list"
                                 exit 1
                         fi
                 fi
@@ -587,8 +527,7 @@ case $# in
         3)
                 function_check=$(echo $LIST_3_ARG | grep "$FUNCTION")
                 if [ ! -n "$function_check" ]; then
-                        echo "[ERROR] $FUNCTION can't be used with 3 arguments"
-                        echo "Use: $SCRIPT_LOC help"
+                        echo "[ERROR] $FUNCTION can't be used with 3 arguments : $SCRIPT_LOC help"
                         exit 1
                 fi
                 COMPOSE=$2
@@ -599,22 +538,20 @@ case $# in
                                 echo "[ERROR] Docker compose not found in  ${DOCKER_DIR}/$COMPOSE - EXITING"
                                 exit 1
                         fi
-                        if [[ ( "$OPTION" == "-f" || "$OPTION" == "--force" ) && "$FUNCTION" == "update" ]]; then
-                                "$FUNCTION"
-                        elif [[ ( "$OPTION" == "-nano" || "$OPTION" == "-vi" ) && "$FUNCTION" == "edit" ]]; then
+                        if [[ ( "$OPTION" == "-nano" || "$OPTION" == "-vi" ) && "$FUNCTION" == "edit" ]]; then
                                 "$FUNCTION"
                         else
-                                echo "[ERROR] option: $OPTION not available for $FUNCTION use $SCRIPT_LOC help"
+                                echo "[ERROR] option: $OPTION not available for $FUNCTION :$SCRIPT_LOC help"
                                 exit 1
                         fi
                 else
-                        echo "[ERROR] $COMPOSE not available use $SCRIPT_LOC list"
+                        echo "[ERROR] $COMPOSE not available : $SCRIPT_LOC list"
                         exit 1
                 fi
 
                 ;;
         *)
-                echo "[ERROR] with argument number provided use : $SCRIPT_LOC help"
+                echo "[ERROR] with argument number provided : $SCRIPT_LOC help"
                 exit 1
             ;;
 esac

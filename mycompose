@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Tools, helper scripts to manage docker-compose.
-# Copyright (c) 2023 Misterbabou
+# Copyright (c) 2024 Misterbabou
 #
 #Permission is hereby granted, free of charge, to any person obtaining a copy
 #of this software and associated documentation files (the "Software"), to deal
@@ -39,405 +39,401 @@ LIST_2_ARG="start stop info compatibility check update restore resume create set
 LIST_3_ARG="edit"
 
 function check_admin {
-    #Admin right check for the rest of commands
-    if [ "$EUID" -ne 0 ]; then
-        echo "[ERROR] Please run this script with root privileges - EXITING"
-        exit 1
-    fi
+  #Admin right check for the rest of commands
+  if [ "$EUID" -ne 0 ]; then
+    echo "[ERROR] Please run this script with root privileges - EXITING"
+    exit 1
+  fi
 }
 
-
 function help {
-    echo -e '\nUsage:\tmycompose COMMAND [COMPOSE] [OPTION]'
-    echo -e '---\nCOMPOSE:\tName of your docker-compose directory'
-    echo -e '---\nOPTION: \tAdditionnal option for COMMAND see bellow'
-    echo -e '---\nCOMMAND:\n'
-    echo -e '  help  \t\tProvide help about commands'
-    echo -e '  create  \t\tCreate the template directory for a new docker-compose'
-    echo -e '  check  \t\tCheck update images for docker-compose'
-    echo -e '  compatibility \tCheck compatibility for upadate, restore and resume command'
-    echo -e '  discord_update  \tSend Discord webhook for available update'
-    echo -e '  edit  \t\tEdit docker-compose.yml with vi or nano'
-    echo -e '  info  \t\tCheck State and running images'
-    echo -e '  list  \t\tList all available docker-compose to manage'
-    echo -e '  setdir  \t\tSet root docker-compose directory usefull command if docker-compose ls is not working as intended.\n\t\t\tCommand will check if docker-compose.yml are available'
-    echo -e '  start  \t\tExecute a docker-compose up -d'
-    echo -e '  stop  \t\tExecute a docker-compose down'
-    echo -e '  logs  \t\tExecute a docker-compose logs -f'
-    echo -e '  update  \t\tUpdate a docker-compose after checking compatibility and new-images (check). \n\t\t\tThe Update command is making a backup of image version and volume'
-    echo -e '\t\t\tRollback previous update state with restore command.'
-    echo -e '  update_force  \tUpdate command without checks NOT RECOMMENDED'
-    echo -e '  restore  \t\tRollback if previous update break your docker-compose.\n\t\t\tIt will fix your docker compose to a specific version use resume to go back to previous TAGS'
-    echo -e '\t\t\tIt Will create and appdata directory with docker-compose to save modification since the update'
-    echo -e '  resume  \t\tResume to Initial TAG useful only after a restore and a known new version will not break your docker-compose. '
-    echo -e '---'
-    echo -e 'EXEMPLE: \n'
-    echo -e '  mycompose help'
-    echo -e '  mycompose edit <COMPOSE> -vi  \tEdit docker-compose.yml with vi'
-    echo -e '  mycompose edit <COMPOSE> -nano  \tEdit docker-compose.yml with vi'
-    echo -e '  mycompose create <COMPOSE>'
-    echo -e '  mycompose check  \t\t\tCheck all of your docker-compose\n  mycompose check <COMPOSE>  \t\tCheck for provided COMPOSE'
-    echo -e '  mycompose discord_update <webhook_url>'
-    echo -e '  mycompose compatibility  \t\tCompatibility all of your docker-compose\n  mycompose compatibility <COMPOSE>  \tCompatibility for provided COMPOSE'
-    echo -e '  mycompose info  \t\t\tInfo all of your docker-compose\n  mycompose info <COMPOSE>  \t\tInfo for provided COMPOSE'
-    echo -e '  mycompose list  \t\t\tList all of your docker-compose'
-    echo -e '  mycompose setdir <FULLPATH> \t\tAdd or change docker-compose root dir\n  mycompose setdir delete  \t\tDelete existing setdir'
-    echo -e '  mycompose start <COMPOSE>'
-    echo -e '  mycompose stop <COMPOSE>'
-    echo -e '  mycompose logs <COMPOSE>'
-    echo -e '  mycompose update <COMPOSE>\n  mycompose update_force <COMPOSE> \tForce update without check : NOT RECOMMENDED'
-    echo -e '  mycompose restore <COMPOSE>'
-    echo -e '  mycompose resume <COMPOSE>'
+  echo -e '\nUsage:\tmycompose COMMAND [COMPOSE] [OPTION]'
+  echo -e '---\nCOMPOSE:\tName of your docker-compose directory'
+  echo -e '---\nOPTION: \tAdditionnal option for COMMAND see bellow'
+  echo -e '---\nCOMMAND:\n'
+  echo -e '  help  \t\tProvide help about commands'
+  echo -e '  create  \t\tCreate the template directory for a new docker-compose'
+  echo -e '  check  \t\tCheck update images for docker-compose'
+  echo -e '  compatibility \tCheck compatibility for upadate, restore and resume command'
+  echo -e '  discord_update  \tSend Discord webhook for available update'
+  echo -e '  edit  \t\tEdit docker-compose.yml with vi or nano'
+  echo -e '  info  \t\tCheck State and running images'
+  echo -e '  list  \t\tList all available docker-compose to manage'
+  echo -e '  setdir  \t\tSet root docker-compose directory usefull command if docker-compose ls is not working as intended.\n\t\t\tCommand will check if docker-compose.yml are available'
+  echo -e '  start  \t\tExecute a docker-compose up -d'
+  echo -e '  stop  \t\tExecute a docker-compose down'
+  echo -e '  logs  \t\tExecute a docker-compose logs -f'
+  echo -e '  update  \t\tUpdate a docker-compose after checking compatibility and new-images (check). \n\t\t\tThe Update command is making a backup of image version and volume'
+  echo -e '\t\t\tRollback previous update state with restore command.'
+  echo -e '  update_force  \tUpdate command without checks NOT RECOMMENDED'
+  echo -e '  restore  \t\tRollback if previous update break your docker-compose.\n\t\t\tIt will fix your docker compose to a specific version use resume to go back to previous TAGS'
+  echo -e '\t\t\tIt Will create and appdata directory with docker-compose to save modification since the update'
+  echo -e '  resume  \t\tResume to Initial TAG useful only after a restore and a known new version will not break your docker-compose. '
+  echo -e '---'
+  echo -e 'EXEMPLE: \n'
+  echo -e '  mycompose help'
+  echo -e '  mycompose edit <COMPOSE> -vi  \tEdit docker-compose.yml with vi'
+  echo -e '  mycompose edit <COMPOSE> -nano  \tEdit docker-compose.yml with vi'
+  echo -e '  mycompose create <COMPOSE>'
+  echo -e '  mycompose check  \t\t\tCheck all of your docker-compose\n  mycompose check <COMPOSE>  \t\tCheck for provided COMPOSE'
+  echo -e '  mycompose discord_update <webhook_url>'
+  echo -e '  mycompose compatibility  \t\tCompatibility all of your docker-compose\n  mycompose compatibility <COMPOSE>  \tCompatibility for provided COMPOSE'
+  echo -e '  mycompose info  \t\t\tInfo all of your docker-compose\n  mycompose info <COMPOSE>  \t\tInfo for provided COMPOSE'
+  echo -e '  mycompose list  \t\t\tList all of your docker-compose'
+  echo -e '  mycompose setdir <FULLPATH> \t\tAdd or change docker-compose root dir\n  mycompose setdir delete  \t\tDelete existing setdir'
+  echo -e '  mycompose start <COMPOSE>'
+  echo -e '  mycompose stop <COMPOSE>'
+  echo -e '  mycompose logs <COMPOSE>'
+  echo -e '  mycompose update <COMPOSE>\n  mycompose update_force <COMPOSE> \tForce update without check : NOT RECOMMENDED'
+  echo -e '  mycompose restore <COMPOSE>'
+  echo -e '  mycompose resume <COMPOSE>'
 }
 
 function setdir {
-    check_admin
-    if [ "$COMPOSE" == delete ]; then
-        if [ -f "$SETDIR_LOC" ];then
-            rm $SETDIR_LOC
-            echo "setdirectory Deleted"
-        fi
-    else
-        SEARCH_COMPOSE=$(find $COMPOSE -maxdepth 2 -type f -name "docker-compose.yml" 2>/dev/null)
-        if [ -n "$SEARCH_COMPOSE" ]; then
-            IS_ROOT_DIR=$(find $COMPOSE -maxdepth 1 -type f -name "docker-compose.yml" 2>/dev/null)
-            if [ -n "$IS_ROOT_DIR" ]; then
-                COMPOSE=$(dirname "$COMPOSE")
-            fi
-            echo "$COMPOSE" > "$SETDIR_LOC"
-            echo "Root Dir $COMPOSE added"
-        else
-            "[ERROR] No Docker Compose found in root dir $COMPOSE"
-            exit 1
-        fi
+  check_admin
+  if [ "$COMPOSE" == delete ]; then
+    if [ -f "$SETDIR_LOC" ];then
+      rm $SETDIR_LOC
+      echo "setdirectory Deleted"
     fi
+  else
+    SEARCH_COMPOSE=$(find $COMPOSE -maxdepth 2 -type f -name "docker-compose.yml" 2>/dev/null)
+    if [ -n "$SEARCH_COMPOSE" ]; then
+      IS_ROOT_DIR=$(find $COMPOSE -maxdepth 1 -type f -name "docker-compose.yml" 2>/dev/null)
+      if [ -n "$IS_ROOT_DIR" ]; then
+        COMPOSE=$(dirname "$COMPOSE")
+      fi
+      echo "$COMPOSE" > "$SETDIR_LOC"
+      echo "Root Dir $COMPOSE added"
+    else
+      "[ERROR] No Docker Compose found in root dir $COMPOSE"
+      exit 1
+    fi
+  fi
 }
 
 function start {
-    $COMPOSE_CMD -f "$COMPOSE_LOC" up -d
+  $COMPOSE_CMD -f "$COMPOSE_LOC" up -d
 }
 
 function stop {
-    $COMPOSE_CMD -f "$COMPOSE_LOC" down
+  $COMPOSE_CMD -f "$COMPOSE_LOC" down
 }
 
 function logs {
-    info
-    $COMPOSE_CMD -f "$COMPOSE_LOC" logs -f
+  info
+  $COMPOSE_CMD -f "$COMPOSE_LOC" logs -f
 }
 
 function edit {
-    check_admin
-    if [ "$OPTION" == "-nano" ];then
-        nano ${DOCKER_DIR}/${COMPOSE}/$COMPOSE_LOC
-    else
-        vi ${DOCKER_DIR}/${COMPOSE}/$COMPOSE_LOC
-    fi
+  check_admin
+  if [ "$OPTION" == "-nano" ];then
+    nano ${DOCKER_DIR}/${COMPOSE}/$COMPOSE_LOC
+  else
+    vi ${DOCKER_DIR}/${COMPOSE}/$COMPOSE_LOC
+  fi
 }
 
 
 function create {
-    echo "---"
-    check_admin
-    if [ ! -d "${DOCKER_DIR}/$COMPOSE" ]; then
-        mkdir -p ${DOCKER_DIR}/${COMPOSE}/${APPDATA_LOC}
-        touch ${DOCKER_DIR}/${COMPOSE}/${COMPOSE_LOC}
-        echo "${DOCKER_DIR}/${COMPOSE} Created:"
-        echo "-Edit ${DOCKER_DIR}/${COMPOSE}/${COMPOSE_LOC} to deploy your new compose"
-        echo "-All persitent volume need to be located in ${DOCKER_DIR}/${COMPOSE}/${APPDATA_LOC}/"
-    else
-        echo "[ERROR] $COMPOSE alreade exist, enter an other name"
-        echo "List already taken name:"
-        echo "$SCRIPT_LOC list"
-    fi
+  echo "---"
+  check_admin
+  if [ ! -d "${DOCKER_DIR}/$COMPOSE" ]; then
+    mkdir -p ${DOCKER_DIR}/${COMPOSE}/${APPDATA_LOC}
+    touch ${DOCKER_DIR}/${COMPOSE}/${COMPOSE_LOC}
+    echo "${DOCKER_DIR}/${COMPOSE} Created:"
+    echo "-Edit ${DOCKER_DIR}/${COMPOSE}/${COMPOSE_LOC} to deploy your new compose"
+    echo "-All persitent volume need to be located in ${DOCKER_DIR}/${COMPOSE}/${APPDATA_LOC}/"
+  else
+    echo "[ERROR] $COMPOSE alreade exist, enter an other name"
+    echo "List already taken name:"
+    echo "$SCRIPT_LOC list"
+  fi
 }
 
 function compatibility {
-    echo "---"
-    echo "Compatibility Check: "
-    if [ ! -n "$COMPOSE" ]; then
-        DIR_TO_CHECK="*"
-    else
-        DIR_TO_CHECK=$COMPOSE
-    fi
-    for i in $DOCKER_DIR/$DIR_TO_CHECK ; do
-        if [ -d "$i" ]; then
-            dir_found=$(basename "$i")
-            cd $DOCKER_DIR"/"$dir_found
-            if [ -f "docker-compose.yml" ]; then
-                echo "---"
-                echo "| $dir_found |"
-                echo "COMPATIBILITY: "
-                if [ -d "$APPDATA_LOC" ]; then
-                    echo "- APPDATA : OK"
-                else
-                    echo "- APPDATA : [ERROR] Create $APPDATA_LOC folder "
-                    COMPATIBILITY_RESULT="1"
-                fi
-                image_compat1=$(cat $COMPOSE_LOC | grep "image: " | grep '"')
-                image_compat2=$(cat $COMPOSE_LOC | grep "image: " | grep "'")
-                if [ ! -n "$image_compat1" ] && [ ! -n "$image_compat2" ]; then
-                    echo "- DOCKER_COMPOSE: OK"
-                else
-                    echo "- DOCKER_COMPOSE: [ERROR] Remove every simple quote and double quote in"
-                    echo $image_compat1
-                    echo $image_compat2
-                    COMPATIBILITY_RESULT="1"
-                fi
-            fi
+  echo "---"
+  echo "Compatibility Check: "
+  if [ ! -n "$COMPOSE" ]; then
+    DIR_TO_CHECK="*"
+  else
+    DIR_TO_CHECK=$COMPOSE
+  fi
+  for i in $DOCKER_DIR/$DIR_TO_CHECK ; do
+    if [ -d "$i" ]; then
+      dir_found=$(basename "$i")
+      cd $DOCKER_DIR"/"$dir_found
+      if [ -f "docker-compose.yml" ]; then
+        echo "---"
+        echo "| $dir_found |"
+        echo "COMPATIBILITY: "
+        if [ -d "$APPDATA_LOC" ]; then
+          echo "- APPDATA : OK"
+        else
+          echo "- APPDATA : [ERROR] Create $APPDATA_LOC folder "
+          COMPATIBILITY_RESULT="1"
         fi
-    done
+        image_compat1=$(cat $COMPOSE_LOC | grep "image: " | grep '"')
+        image_compat2=$(cat $COMPOSE_LOC | grep "image: " | grep "'")
+        if [ ! -n "$image_compat1" ] && [ ! -n "$image_compat2" ]; then
+          echo "- DOCKER_COMPOSE: OK"
+        else
+          echo "- DOCKER_COMPOSE: [ERROR] Remove every simple quote and double quote in"
+          echo $image_compat1
+          echo $image_compat2
+          COMPATIBILITY_RESULT="1"
+        fi
+      fi
+    fi
+  done
 }
 
 function info {
-    echo "---"
-    echo "Info for Docker-compose: "
-    if [ ! -n "$COMPOSE" ]; then
-        DIR_TO_CHECK="*"
-    else
-        DIR_TO_CHECK=$COMPOSE
-    fi
-    for i in $DOCKER_DIR/$DIR_TO_CHECK ; do
-        if [ -d "$i" ]; then
-            dir_found=$(basename "$i")
-            cd $DOCKER_DIR"/"$dir_found
-            if [ -f "docker-compose.yml" ]; then
-                echo "---"
-                echo "| $dir_found |"
-                image_id=$($COMPOSE_CMD -f "$COMPOSE_LOC" images -q | cut -c 1-12)
-                if [ ! -n "$image_id" ]; then
-                    echo "- STATE: Down"
-                else
-                    echo "- STATE: Running"
-                    echo "- ASSOCIATED IMAGES:"
-                fi
-                for i in $image_id; do
-                    container_full=$(docker image ls | grep "$i" )
-                    image_tag=$(echo $container_full | cut -d ' ' -f 2)
-                    image_name=$(echo $container_full | cut -d ' ' -f 1)
-                    echo "  $image_name:$image_tag"
-                done
-            fi
+  echo "---"
+  echo "Info for Docker-compose: "
+  if [ ! -n "$COMPOSE" ]; then
+    DIR_TO_CHECK="*"
+  else
+    DIR_TO_CHECK=$COMPOSE
+  fi
+  for i in $DOCKER_DIR/$DIR_TO_CHECK ; do
+    if [ -d "$i" ]; then
+      dir_found=$(basename "$i")
+      cd $DOCKER_DIR"/"$dir_found
+      if [ -f "docker-compose.yml" ]; then
+        echo "---"
+        echo "| $dir_found |"
+        image_id=$($COMPOSE_CMD -f "$COMPOSE_LOC" images -q | cut -c 1-12)
+        if [ ! -n "$image_id" ]; then
+          echo "- STATE: Down"
+        else
+          echo "- STATE: Running"
+          echo "- ASSOCIATED IMAGES:"
         fi
-    done
+        for i in $image_id; do
+          container_full=$(docker image ls | grep "$i" )
+          image_tag=$(echo $container_full | cut -d ' ' -f 2)
+          image_name=$(echo $container_full | cut -d ' ' -f 1)
+          echo "  $image_name:$image_tag"
+        done
+      fi
+    fi
+  done
 }
 
 function list {
-    echo "---"
-    echo "Listing All Docker-compose available: "
-    for i in $DOCKER_DIR/* ; do
-        if [ -d "$i" ]; then
-            dir_found=$(basename "$i")
-            cd $DOCKER_DIR"/"$dir_found
-            if [ -f "docker-compose.yml" ]; then
-                echo "---"
-                echo "  $dir_found"
-            fi
-        fi
-    done
+  echo "---"
+  echo "Listing All Docker-compose available: "
+  for i in $DOCKER_DIR/* ; do
+    if [ -d "$i" ]; then
+      dir_found=$(basename "$i")
+      cd $DOCKER_DIR"/"$dir_found
+      if [ -f "docker-compose.yml" ]; then
+        echo "---"
+        echo "  $dir_found"
+      fi
+    fi
+  done
 }
 
 ##Function to Check UPDATE
 function check {
+  echo "---"
+  echo "Checking update ..."
+  if [ ! -n "$COMPOSE" ]; then
+    DIR_TO_CHECK="*"
+  else
+    DIR_TO_CHECK=$COMPOSE
+  fi
+  for i in $DOCKER_DIR/$DIR_TO_CHECK ; do
+    if [ -d "$i" ]; then
+      dir_found=$(basename "$i")
+      cd $DOCKER_DIR"/"$dir_found
+      if [ -f "docker-compose.yml" ]; then
         echo "---"
-        echo "Checking update ..."
-        if [ ! -n "$COMPOSE" ]; then
-                DIR_TO_CHECK="*"
-        else
-                DIR_TO_CHECK=$COMPOSE
+        echo "| $dir_found |"
+        image_id=$($COMPOSE_CMD -f "$COMPOSE_LOC" images -q | cut -c 1-12)
+        if [ ! -n "$image_id" ]; then
+          echo "docker-compose is down"
         fi
-        for i in $DOCKER_DIR/$DIR_TO_CHECK ; do
-                if [ -d "$i" ]; then
-                        dir_found=$(basename "$i")
-                        cd $DOCKER_DIR"/"$dir_found
-                        if [ -f "docker-compose.yml" ]; then
-                                echo "---"
-                                echo "| $dir_found |"
-                                image_id=$($COMPOSE_CMD -f "$COMPOSE_LOC" images -q | cut -c 1-12)
-                                if [ ! -n "$image_id" ]; then
-                                        echo "docker-compose is down"
-                                fi
-                                for i in $image_id; do
-                                        container_full=$(docker image ls | grep "$i" )
-                                        image_tag=$(echo $container_full | cut -d ' ' -f 2)
-                                        image_name=$(echo $container_full | cut -d ' ' -f 1)
-                                        IMAGE_ABSOLUTE="$image_name:$image_tag"
-                                        DIGEST_LOCAL=$(docker images -q --no-trunc $IMAGE_ABSOLUTE )
-                                        if [ -z "${DIGEST_LOCAL}" ] ; then
-                                                echo "Local digest: not found" 1>&2
-                                                echo "For security reasons, this script only allows updates of already pulled images." 1>&2
-                                                exit 1
-                                        fi
-                                        DIGEST_REMOTE=$(docker manifest inspect $IMAGE_ABSOLUTE --verbose 2> /dev/null | grep -A 3 "config" | grep "digest" | cut -d '"' -f 4)
-                                        FOUND=$(echo $DIGEST_REMOTE | grep $DIGEST_LOCAL)
-                                        if [ -z "${DIGEST_REMOTE}" ]; then
-                                                echo "  Error check      | $IMAGE_ABSOLUTE"
-                                        elif [ -z "${FOUND}" ]; then
-                                                echo "  Update Available | $IMAGE_ABSOLUTE"
-                                                UPDATE_RESULT="1"
-                                        else
-                                                echo "  Up to date       | $IMAGE_ABSOLUTE"
-                                        fi
-                                done
-                        fi
-                fi
+        for i in $image_id; do
+          container_full=$(docker image ls | grep "$i" )
+          image_tag=$(echo $container_full | cut -d ' ' -f 2)
+          image_name=$(echo $container_full | cut -d ' ' -f 1)
+          IMAGE_ABSOLUTE="$image_name:$image_tag"
+          DIGEST_LOCAL=$(docker images -q --no-trunc $IMAGE_ABSOLUTE )
+          if [ -z "${DIGEST_LOCAL}" ] ; then
+            echo "Local digest: not found" 1>&2
+            echo "For security reasons, this script only allows updates of already pulled images." 1>&2
+            exit 1
+          fi
+          DIGEST_REMOTE=$(docker manifest inspect $IMAGE_ABSOLUTE --verbose 2> /dev/null | grep -A 3 "config" | grep "digest" | cut -d '"' -f 4)
+          FOUND=$(echo $DIGEST_REMOTE | grep $DIGEST_LOCAL)
+          if [ -z "${DIGEST_REMOTE}" ]; then
+            echo "  Error check      | $IMAGE_ABSOLUTE"
+          elif [ -z "${FOUND}" ]; then
+            echo "  Update Available | $IMAGE_ABSOLUTE"
+            UPDATE_RESULT="1"
+          else
+            echo "  Up to date       | $IMAGE_ABSOLUTE"
+          fi
         done
+      fi
+    fi
+  done
 }
 
 function discord_update {
-    if ! command -v discord.sh &> /dev/null
-    then
-        check_admin
-        echo "installing discord.sh from https://github.com/fieu/discord.sh"
-        curl -L https://github.com/fieu/discord.sh/releases/download/v2.0.0/discord.sh -o /usr/local/bin/discord.sh
-        chmod +x /usr/local/bin/discord.sh
-    fi
-    DISCORD_WEBHOOK=$COMPOSE
-    COMPOSE=""
+  if ! command -v discord.sh &> /dev/null; then
+    check_admin
+    echo "installing discord.sh from https://github.com/fieu/discord.sh"
+    curl -L https://github.com/fieu/discord.sh/releases/download/v2.0.0/discord.sh -o /usr/local/bin/discord.sh
+    chmod +x /usr/local/bin/discord.sh
+  fi
+  DISCORD_WEBHOOK=$COMPOSE
+  COMPOSE=""
 
-    check >> /tmp/update_discord
-    sed -i '1,/Checking update .../d' /tmp/update_discord
-    sed -i -e 's/---/ /g' -e 's/^|/`/g' -e 's/|$/`/g' -e 's/|//g' -e 's/Up to date/:white_check_mark:/g' -e 's/Update Available/:x:      /g'  -e 's/Error check/:question:      /g' -e 's/docker-compose is down/:zzz: /g' /tmp/update_discord
+  check >> /tmp/update_discord
+  sed -i '1,/Checking update .../d' /tmp/update_discord
+  sed -i -e 's/---/ /g' -e 's/^|/`/g' -e 's/|$/`/g' -e 's/|//g' -e 's/Up to date/:white_check_mark:/g' -e 's/Update Available/:x:      /g'  -e 's/Error check/:question:      /g' -e 's/docker-compose is down/:zzz: /g' /tmp/update_discord
 
-    discord.sh --webhook-url "$DISCORD_WEBHOOK" --text "Docker Update check" --username "$HOSTNAME" --description "$(jq -Rs . </tmp/update_discord | cut -c 2- | rev | cut -c 2- | rev)"
-    rm /tmp/update_discord
+  discord.sh --webhook-url "$DISCORD_WEBHOOK" --text "Docker Update check" --username "$HOSTNAME" --description "$(jq -Rs . </tmp/update_discord | cut -c 2- | rev | cut -c 2- | rev)"
+  rm /tmp/update_discord
 }
 
 
 function update {
-    #Check ADMIN RIGHT
-    check_admin
+  #Check ADMIN RIGHT
+  check_admin
 
-    #CHECK Update skip if force flag provided
-    if [ "$OPTION" != "-f" ] && [ "$OPTION" != "--force" ];then
-        compatibility
-        if [ -n "$COMPATIBILITY_RESULT" ]; then
-                echo "---"
-                echo "[ERROR] Use previous log to check compatibility "
-                echo "If you want to force the update (NOT RECOMMENDED) use: "
-                echo "$SCRIPT_LOC $FUNCTION $COMPOSE -f"
-                exit 1
-        fi
-
-        check
-        if [ ! -n "$UPDATE_RESULT" ]; then
-                echo "---"
-                echo "[WARNING] No update found for $COMPOSE, to force update use: "
-                echo "$SCRIPT_LOC $FUNCTION $COMPOSE -f"
-                exit 1
-        fi
+  #CHECK Update skip if force flag provided
+  if [ "$OPTION" != "-f" ] && [ "$OPTION" != "--force" ];then
+    compatibility
+    if [ -n "$COMPATIBILITY_RESULT" ]; then
+      echo "---"
+      echo "[ERROR] Use previous log to check compatibility "
+      echo "If you want to force the update (NOT RECOMMENDED) use: "
+      echo "$SCRIPT_LOC $FUNCTION $COMPOSE -f"
+      exit 1
     fi
 
-    image_id=$($COMPOSE_CMD -f "$COMPOSE_LOC" images -q | cut -c 1-12)
-
-    if [ -f "$VERSIONS_LOC" ];then
-        rm $VERSIONS_LOC
-        touch $VERSIONS_LOC
-    else
-        touch $VERSIONS_LOC
+    check
+    if [ ! -n "$UPDATE_RESULT" ]; then
+      echo "---"
+      echo "[WARNING] No update found for $COMPOSE, to force update use: "
+      echo "$SCRIPT_LOC $FUNCTION $COMPOSE -f"
+      exit 1
     fi
-    for i in $image_id; do
-        container_full=$(docker image ls | grep "$i" )
-        image_tag=$(echo $container_full | cut -d ' ' -f 2)
-        image_name=$(echo $container_full | cut -d ' ' -f 1)
-        repo_digest=$(docker inspect --format='{{index .RepoDigests 0}}' "$image_name:$image_tag" )
-        echo "$image_tag,$image_name,$repo_digest" >> "$VERSIONS_LOC"
-    done
+  fi
 
-    $COMPOSE_CMD -f "$COMPOSE_LOC" pull
-    $COMPOSE_CMD -f "$COMPOSE_LOC" down
+  image_id=$($COMPOSE_CMD -f "$COMPOSE_LOC" images -q | cut -c 1-12)
 
-    APPDATA_NAME=$(echo "$APPDATA_LOC" | awk -F/ '{print $NF}')
-    cp "$COMPOSE_LOC" "$COMPOSE_LOC".bck
-    echo "Volume Backup..."
-    tar -C "$APPDATA_LOC"/.. -cvzf "$APPDATA_LOC"/../appdatabackup.tar.gz "$APPDATA_NAME" &>/dev/null
+  if [ -f "$VERSIONS_LOC" ];then
+    rm $VERSIONS_LOC
+    touch $VERSIONS_LOC
+  else
+    touch $VERSIONS_LOC
+  fi
+  for i in $image_id; do
+    container_full=$(docker image ls | grep "$i" )
+    image_tag=$(echo $container_full | cut -d ' ' -f 2)
+    image_name=$(echo $container_full | cut -d ' ' -f 1)
+    repo_digest=$(docker inspect --format='{{index .RepoDigests 0}}' "$image_name:$image_tag" )
+    echo "$image_tag,$image_name,$repo_digest" >> "$VERSIONS_LOC"
+  done
 
-    $COMPOSE_CMD -f "$COMPOSE_LOC" up -d
-    chown "${USER}":"${USER}" "$APPDATA_LOC"/../appdatabackup.tar.gz
+  $COMPOSE_CMD -f "$COMPOSE_LOC" pull
+  $COMPOSE_CMD -f "$COMPOSE_LOC" down
 
-    docker image prune -f
-    echo "Update done"
+  APPDATA_NAME=$(echo "$APPDATA_LOC" | awk -F/ '{print $NF}')
+  cp "$COMPOSE_LOC" "$COMPOSE_LOC".bck
+  echo "Volume Backup..."
+  tar -C "$APPDATA_LOC"/.. -cvzf "$APPDATA_LOC"/../appdatabackup.tar.gz "$APPDATA_NAME" &>/dev/null
+
+  $COMPOSE_CMD -f "$COMPOSE_LOC" up -d
+  chown "${USER}":"${USER}" "$APPDATA_LOC"/../appdatabackup.tar.gz
+
+  docker image prune -f
+  echo "Update done"
 }
 
 function restore {
-    #Check ADMIN RIGHT
-    check_admin
+  #Check ADMIN RIGHT
+  check_admin
 
-    $COMPOSE_CMD -f "$COMPOSE_LOC" down
-    randstr=$(< /dev/urandom tr -dc _A-Z-a-z-0-9 | head -c${1:-8};echo;)
-    mv "$APPDATA_LOC" "${APPDATA_LOC}.$randstr"
-    cp "$COMPOSE_LOC" "${COMPOSE_LOC}.$randstr"
-    mkdir -p "$APPDATA_LOC"
-    echo "Restoring Volumes..."
-    sudo tar xvf "$APPDATA_LOC"/../appdatabackup.tar.gz -C "$APPDATA_LOC"/../ &>/dev/null
-    for i in $(cat "$VERSIONS_LOC"); do
-        image_tag=$(echo "$i" | awk -F, '{print $1}')
-        image_name=$(echo "$i" | awk -F, '{print $2}')
-        image_version="$image_name:$image_tag"
-        repo_digest=$(echo "$i" | awk -F, '{print $3}')
-        sed -i "s#image: ${image_version}#image: ${repo_digest}#g" "$COMPOSE_LOC"
-    done
-    $COMPOSE_CMD -f "$COMPOSE_LOC" pull
-    $COMPOSE_CMD -f "$COMPOSE_LOC" up -d
+  $COMPOSE_CMD -f "$COMPOSE_LOC" down
+  randstr=$(< /dev/urandom tr -dc _A-Z-a-z-0-9 | head -c${1:-8};echo;)
+  mv "$APPDATA_LOC" "${APPDATA_LOC}.$randstr"
+  cp "$COMPOSE_LOC" "${COMPOSE_LOC}.$randstr"
+  mkdir -p "$APPDATA_LOC"
+  echo "Restoring Volumes..."
+  sudo tar xvf "$APPDATA_LOC"/../appdatabackup.tar.gz -C "$APPDATA_LOC"/../ &>/dev/null
+  for i in $(cat "$VERSIONS_LOC"); do
+    image_tag=$(echo "$i" | awk -F, '{print $1}')
+    image_name=$(echo "$i" | awk -F, '{print $2}')
+    image_version="$image_name:$image_tag"
+    repo_digest=$(echo "$i" | awk -F, '{print $3}')
+    sed -i "s#image: ${image_version}#image: ${repo_digest}#g" "$COMPOSE_LOC"
+  done
+  $COMPOSE_CMD -f "$COMPOSE_LOC" pull
+  $COMPOSE_CMD -f "$COMPOSE_LOC" up -d
 
-    echo "Restore done"
+  echo "Restore done"
 }
 
 function resume {
-    #Check ADMIN RIGHT
-    check_admin
+  #Check ADMIN RIGHT
+  check_admin
 
-    if [ ! -f "$COMPOSE_LOC.bck" ]; then
-        echo "[ERROR] No Backup compose file found please verify $APPDATA_LOC/version.txt to find tag and images - EXITING"
-        exit 1
-    fi
-    is_restore=$(cat $COMPOSE_LOC | grep "image:.*sha256:")
-    if [ -z "$is_restore" ]; then
-        echo "Docker_compose can't be resume as it was not restore on docker compose - EXITING"
-        exit 1
-    fi
-    $COMPOSE_CMD -f "$COMPOSE_LOC" down
+  if [ ! -f "$COMPOSE_LOC.bck" ]; then
+    echo "[ERROR] No Backup compose file found please verify $APPDATA_LOC/version.txt to find tag and images - EXITING"
+    exit 1
+  fi
+  is_restore=$(cat $COMPOSE_LOC | grep "image:.*sha256:")
+  if [ -z "$is_restore" ]; then
+    echo "Docker_compose can't be resume as it was not restore on docker compose - EXITING"
+    exit 1
+  fi
+  $COMPOSE_CMD -f "$COMPOSE_LOC" down
 
-    cp "$COMPOSE_LOC".bck "$COMPOSE_LOC"
+  cp "$COMPOSE_LOC".bck "$COMPOSE_LOC"
 
-    $COMPOSE_CMD -f "$COMPOSE_LOC" pull
-    $COMPOSE_CMD -f "$COMPOSE_LOC" up -d
+  $COMPOSE_CMD -f "$COMPOSE_LOC" pull
+  $COMPOSE_CMD -f "$COMPOSE_LOC" up -d
 
-    docker image prune -f
-    echo "Resume done"
+  docker image prune -f
+  echo "Resume done"
 }
 
 function initial_check {
-
-# check if all required command are installed
-TOOLS_REQUIRED="curl docker jq"
-for TOOL_NAME in $TOOLS_REQUIRED ; do
+  # check if all required command are installed
+  TOOLS_REQUIRED="curl docker jq"
+  for TOOL_NAME in $TOOLS_REQUIRED ; do
     TOOL_PATH=$(which $TOOL_NAME)
     if [ -z "$TOOL_PATH" ] ; then
-        echo "Could not find required command: $TOOL_NAME" 1>&2
-        echo "To use this script, you need to install the following command:" 1>&2
-        echo "  $TOOLS_REQUIRED" 1>&2
-        exit 1
+      echo "Could not find required command: $TOOL_NAME" 1>&2
+      echo "To use this script, you need to install the following command:" 1>&2
+      echo "  $TOOLS_REQUIRED" 1>&2
+      exit 1
     fi
-done
+  done
 
-##Check for docker compose in CLI Plugin or command docker-compose
-CHECK_DOCKER_COMPOSE=$(docker compose version 2>/dev/null)
-if [ ! -n "$CHECK_DOCKER_COMPOSE" ]; then
+  ##Check for docker compose in CLI Plugin or command docker-compose
+  CHECK_DOCKER_COMPOSE=$(docker compose version 2>/dev/null)
+  if [ ! -n "$CHECK_DOCKER_COMPOSE" ]; then
     TOOL_PATH=$(which docker-compose)
     if [ -z "$TOOL_PATH" ] ; then
-        echo "Could not find required command: docker compose plugin or docker-compose" 1>&2
-        echo "To use this script, you need to install the docker compose CLI plugin or docker-compose command" 1>&2
-        echo "[Prefered Method on Debian/Ubuntu] sudo apt install docker-compose-plugin" 1>&2
-        exit 1
+      echo "Could not find required command: docker compose plugin or docker-compose" 1>&2
+      echo "To use this script, you need to install the docker compose CLI plugin or docker-compose command" 1>&2
+      echo "[Prefered Method on Debian/Ubuntu] sudo apt install docker-compose-plugin" 1>&2
+      exit 1
     fi
     COMPOSE_CMD="docker-compose"
-fi
-COMPOSE_CMD="docker compose"
+  fi
+  COMPOSE_CMD="docker compose"
 }
 
 function find_docker_dir {
-
   if [ ! -f "$SETDIR_LOC" ];then
     ## check docker-compose version before 2.3.0 docker-compose ls doesn't work
     COMPOSE_VERSION=$( $COMPOSE_CMD version | cut -d ' ' -f 4 )
@@ -445,31 +441,31 @@ function find_docker_dir {
     COMPOSE_MASTER=$(echo $COMPOSE_VERSION | cut -d '.' -f 1 )
     COMPOSE_SECOND=$(echo $COMPOSE_VERSION | cut -d '.' -f 2 )
     if [ $COMPOSE_MASTER -ge 2 ]; then
-            if [  $COMPOSE_MASTER -eq 2 ] && [ $COMPOSE_SECOND -lt 3 ]; then
-                    echo "$COMPOSE_CMD minimal version is 2.3.0 please upgrade"
-                    exit 1
-            fi
+      if [  $COMPOSE_MASTER -eq 2 ] && [ $COMPOSE_SECOND -lt 3 ]; then
+        echo "$COMPOSE_CMD minimal version is 2.3.0 please upgrade"
+        exit 1
+      fi
     else
-            echo "$COMPOSE_CMD minimal version is 2.3.0 please upgrade"
-            exit 1
+      echo "$COMPOSE_CMD minimal version is 2.3.0 please upgrade"
+      exit 1
     fi
     ###
 
     #FIND docker-compose directory
     PATH_COMPOSE=$($COMPOSE_CMD ls | grep "/" | cut -d ')' -f 2 )
     if [ ! -n "$PATH_COMPOSE" ]; then
-        echo "[ERROR] No docker-compose is actually running or PATH not found on server."
-        echo "Run at least 1 to determine docker-compose root directory or use setdir command"
-        exit 1
+      echo "[ERROR] No docker-compose is actually running or PATH not found on server."
+      echo "Run at least 1 to determine docker-compose root directory or use setdir command"
+      exit 1
     fi
     DOCKER_DIR=$(dirname $(dirname $(echo $PATH_COMPOSE | cut -d ' ' -f 1)))
     for i in $PATH_COMPOSE ; do
-        DOCKER_DIR_TEST=$(dirname $(dirname $(echo $i)))
-        if [ "$DOCKER_DIR" !=  "$DOCKER_DIR_TEST" ]; then
-          echo "[ERROR] Multiple root directory are running $COMPOSE_CMD at least $DOCKER_DIR and $DOCKER_DIR_TEST"
-          echo "Merge them in the same directory to run commands or choose the directory manually with setdir command"
-          exit 1
-        fi
+      DOCKER_DIR_TEST=$(dirname $(dirname $(echo $i)))
+      if [ "$DOCKER_DIR" !=  "$DOCKER_DIR_TEST" ]; then
+        echo "[ERROR] Multiple root directory are running $COMPOSE_CMD at least $DOCKER_DIR and $DOCKER_DIR_TEST"
+        echo "Merge them in the same directory to run commands or choose the directory manually with setdir command"
+        exit 1
+      fi
     done
     echo "[INFO] $COMPOSE_CMD root dir is $DOCKER_DIR found by system"
   else
@@ -487,11 +483,11 @@ if [ "$FUNCTION" == "update_force" ]; then
 fi
 # Check if the function exists
 if declare -f "$FUNCTION" > /dev/null; then
-    echo "       ###Software Come With No Warranty###"
+  echo "       ###Software Come With No Warranty###"
 else
-    echo "[ERROR] Wrong argument provided"
-    echo "Use : $SCRIPT_LOC help"
-    exit 1
+  echo "[ERROR] Wrong argument provided"
+  echo "Use : $SCRIPT_LOC help"
+  exit 1
 fi
 
 initial_check
@@ -500,66 +496,65 @@ if [ "$FUNCTION" != "setdir" ] && [ "$FUNCTION" != "help" ];then
 fi
 
 case $# in
-        1)
-                function_check=$(echo $LIST_1_ARG | grep "$FUNCTION")
-                if [ ! -n "$function_check" ]; then
-                        echo "[ERROR] $FUNCTION can't be used alone add arguments : $SCRIPT_LOC help"
-                        exit 1
-                fi
-                "$FUNCTION"
-                ;;
-        2)
-                function_check=$(echo $LIST_2_ARG | grep "$FUNCTION")
-                if [ ! -n "$function_check" ]; then
-                        echo "[ERROR] $FUNCTION can't be used with 2 arguments : $SCRIPT_LOC help"
-                        exit 1
-                fi
-                COMPOSE=$2
-                #SPECIAL for CREATE COMMAND
-                if [ "$FUNCTION" == "create" ] || [ "$FUNCTION" == "setdir" ] ||  [ "$FUNCTION" == "discord_update" ]; then
-                        "$FUNCTION"
-                else
-                        if [ -d "${DOCKER_DIR}/$COMPOSE" ]; then
-                                cd ${DOCKER_DIR}/$COMPOSE
-                                if [ ! -f "$COMPOSE_LOC" ]; then
-                                        echo "[ERROR] Docker compose not found in ${DOCKER_DIR}/$COMPOSE - EXITING"
-                                        exit 1
-                                fi
-                                "$FUNCTION"
-                        else
-                                echo "[ERROR] $COMPOSE not available : $SCRIPT_LOC list"
-                                exit 1
-                        fi
-                fi
-            ;;
-        3)
-                function_check=$(echo $LIST_3_ARG | grep "$FUNCTION")
-                if [ ! -n "$function_check" ]; then
-                        echo "[ERROR] $FUNCTION can't be used with 3 arguments : $SCRIPT_LOC help"
-                        exit 1
-                fi
-                COMPOSE=$2
-                OPTION=$3
-                if [ -d "${DOCKER_DIR}/$COMPOSE" ]; then
-                        cd ${DOCKER_DIR}/$COMPOSE
-                        if [ ! -f "$COMPOSE_LOC" ]; then
-                                echo "[ERROR] Docker compose not found in  ${DOCKER_DIR}/$COMPOSE - EXITING"
-                                exit 1
-                        fi
-                        if [[ ( "$OPTION" == "-nano" || "$OPTION" == "-vi" ) && "$FUNCTION" == "edit" ]]; then
-                                "$FUNCTION"
-                        else
-                                echo "[ERROR] option: $OPTION not available for $FUNCTION :$SCRIPT_LOC help"
-                                exit 1
-                        fi
-                else
-                        echo "[ERROR] $COMPOSE not available : $SCRIPT_LOC list"
-                        exit 1
-                fi
-
-                ;;
-        *)
-                echo "[ERROR] with argument number provided : $SCRIPT_LOC help"
+  1)
+    function_check=$(echo $LIST_1_ARG | grep "$FUNCTION")
+    if [ ! -n "$function_check" ]; then
+      echo "[ERROR] $FUNCTION can't be used alone add arguments : $SCRIPT_LOC help"
+      exit 1
+    fi
+    "$FUNCTION"
+    ;;
+  2)
+    function_check=$(echo $LIST_2_ARG | grep "$FUNCTION")
+    if [ ! -n "$function_check" ]; then
+      echo "[ERROR] $FUNCTION can't be used with 2 arguments : $SCRIPT_LOC help"
+      exit 1
+    fi
+    COMPOSE=$2
+    #SPECIAL for CREATE COMMAND
+    if [ "$FUNCTION" == "create" ] || [ "$FUNCTION" == "setdir" ] ||  [ "$FUNCTION" == "discord_update" ]; then
+      "$FUNCTION"
+    else
+      if [ -d "${DOCKER_DIR}/$COMPOSE" ]; then
+        cd ${DOCKER_DIR}/$COMPOSE
+        if [ ! -f "$COMPOSE_LOC" ]; then
+                echo "[ERROR] Docker compose not found in ${DOCKER_DIR}/$COMPOSE - EXITING"
                 exit 1
-            ;;
+        fi
+        "$FUNCTION"
+      else
+        echo "[ERROR] $COMPOSE not available : $SCRIPT_LOC list"
+        exit 1
+      fi
+    fi
+    ;;
+  3)
+    function_check=$(echo $LIST_3_ARG | grep "$FUNCTION")
+    if [ ! -n "$function_check" ]; then
+      echo "[ERROR] $FUNCTION can't be used with 3 arguments : $SCRIPT_LOC help"
+      exit 1
+    fi
+    COMPOSE=$2
+    OPTION=$3
+    if [ -d "${DOCKER_DIR}/$COMPOSE" ]; then
+      cd ${DOCKER_DIR}/$COMPOSE
+      if [ ! -f "$COMPOSE_LOC" ]; then
+        echo "[ERROR] Docker compose not found in  ${DOCKER_DIR}/$COMPOSE - EXITING"
+        exit 1
+      fi
+      if [[ ( "$OPTION" == "-nano" || "$OPTION" == "-vi" ) && "$FUNCTION" == "edit" ]]; then
+        "$FUNCTION"
+      else
+        echo "[ERROR] option: $OPTION not available for $FUNCTION :$SCRIPT_LOC help"
+        exit 1
+      fi
+    else
+      echo "[ERROR] $COMPOSE not available : $SCRIPT_LOC list"
+      exit 1
+    fi
+    ;;
+  *)
+    echo "[ERROR] with argument number provided : $SCRIPT_LOC help"
+    exit 1
+   ;;
 esac

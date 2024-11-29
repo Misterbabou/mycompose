@@ -1,48 +1,46 @@
 function find_docker_dir {
-    # FIND docker-compose directory only working with docker 2.3.0 and above
-    PATH_COMPOSE=$(docker compose ls | grep "/" | cut -d ')' -f 2 )
-    DOCKER_DIR=$(dirname $(dirname $(echo $PATH_COMPOSE | cut -d ' ' -f 1)))
+  # FIND docker-compose directory only working with docker 2.3.0 and above
+  PATH_COMPOSE=$(docker compose ls | grep "/" | cut -d ')' -f 2 )
+  DOCKER_DIR=$(dirname $(dirname $(echo $PATH_COMPOSE | cut -d ' ' -f 1)))
 }
 
 _mycompose_completion() {
-    local cur prev opts
-    COMPREPLY=()
-    cur="${COMP_WORDS[COMP_CWORD]}"
-    prev="${COMP_WORDS[COMP_CWORD-1]}"
-    prev2="${COMP_WORDS[COMP_CWORD-2]}"
-    opts="help create check compatibility discord_update edit info list setdir start stop update update_force restore resume logs"
+  local cur prev opts
+  COMPREPLY=()
+  cur="${COMP_WORDS[COMP_CWORD]}"
+  prev="${COMP_WORDS[COMP_CWORD-1]}"
+  prev2="${COMP_WORDS[COMP_CWORD-2]}"
+  opts="help create check compatibility discord_update edit info list setdir start stop update update_force restore resume logs"
 
-    case "${prev}" in
-        mycompose)
-           COMPREPLY=($(compgen -W "${opts}" -- ${cur}))
-           return 0
-           ;;
-        create|check|compatibility|edit|info|start|stop|update|update_force|restore|resume|logs)
-            if [ -z "$DOCKER_DIR" ]; then
-              find_docker_dir
-            fi
-            local compose_opts=$(ls $DOCKER_DIR)
-            COMPREPLY=($(compgen -W "${compose_opts} " -- ${cur}))
-            return 0
-            ;;
-        discord_update|setdir)
-            COMPREPLY=($(compgen -W " " -- ${cur}))
-            return 0
-            ;;
-        *)
-            case "${prev2}" in
-              edit)
-                COMPREPLY=($(compgen -W "-vi -nano" -- ${cur}))
-                return 0
-                ;;
-            esac
-            ;;
-    esac
-    return 0
+  case "${prev}" in
+    mycompose)
+      COMPREPLY=($(compgen -W "${opts}" -- ${cur}))
+      return 0
+      ;;
+    create|check|compatibility|edit|info|start|stop|update|update_force|restore|resume|logs)
+      if [ -z "$DOCKER_DIR" ]; then
+        find_docker_dir
+      fi
+      local compose_opts=$(ls $DOCKER_DIR)
+      COMPREPLY=($(compgen -W "${compose_opts} " -- ${cur}))
+      return 0
+      ;;
+    discord_update|setdir)
+      COMPREPLY=($(compgen -W " " -- ${cur}))
+      return 0
+      ;;
+    *)
+      case "${prev2}" in
+        edit)
+          COMPREPLY=($(compgen -W "-vi -nano" -- ${cur}))
+          return 0
+          ;;
+      esac
+      ;;
+  esac
+  return 0
 }
 
 if [ -n "$BASH_VERSION" ]; then
-    complete -F _mycompose_completion mycompose
+  complete -F _mycompose_completion mycompose
 fi
-
-

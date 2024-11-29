@@ -31,7 +31,8 @@
 APPDATA_LOC="./appdata"
 COMPOSE_LOC="./docker-compose.yml"
 VERSIONS_LOC="${APPDATA_LOC}/versions.txt"
-SCRIPT_LOC="$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )/$(basename "${BASH_SOURCE[0]}")"
+SCRIPT_LOC="$0"
+SCRIPT_COMMAND="$(basename $0)"
 SETDIR_LOC="/etc/mycompose.conf"
 ###FUNCTION compatibility depending on argument provided
 LIST_1_ARG="help list info compatibility check"
@@ -47,46 +48,50 @@ function check_admin {
 }
 
 function help {
-  echo -e '\nUsage:\tmycompose COMMAND [COMPOSE] [OPTION]'
-  echo -e '---\nCOMPOSE:\tName of your docker-compose directory'
-  echo -e '---\nOPTION: \tAdditionnal option for COMMAND see bellow'
-  echo -e '---\nCOMMAND:\n'
-  echo -e '  help  \t\tProvide help about commands'
-  echo -e '  create  \t\tCreate the template directory for a new docker-compose'
-  echo -e '  check  \t\tCheck update images for docker-compose'
-  echo -e '  compatibility \tCheck compatibility for upadate, restore and resume command'
-  echo -e '  discord_update  \tSend Discord webhook for available update'
-  echo -e '  edit  \t\tEdit docker-compose.yml with vi or nano'
-  echo -e '  info  \t\tCheck State and running images'
-  echo -e '  list  \t\tList all available docker-compose to manage'
-  echo -e '  setdir  \t\tSet root docker-compose directory usefull command if docker-compose ls is not working as intended.\n\t\t\tCommand will check if docker-compose.yml are available'
-  echo -e '  start  \t\tExecute a docker-compose up -d'
-  echo -e '  stop  \t\tExecute a docker-compose down'
-  echo -e '  logs  \t\tExecute a docker-compose logs -f'
-  echo -e '  update  \t\tUpdate a docker-compose after checking compatibility and new-images (check). \n\t\t\tThe Update command is making a backup of image version and volume'
-  echo -e '\t\t\tRollback previous update state with restore command.'
-  echo -e '  update_force  \tUpdate command without checks NOT RECOMMENDED'
-  echo -e '  restore  \t\tRollback if previous update break your docker-compose.\n\t\t\tIt will fix your docker compose to a specific version use resume to go back to previous TAGS'
-  echo -e '\t\t\tIt Will create and appdata directory with docker-compose to save modification since the update'
-  echo -e '  resume  \t\tResume to Initial TAG useful only after a restore and a known new version will not break your docker-compose. '
-  echo -e '---'
-  echo -e 'EXEMPLE: \n'
-  echo -e '  mycompose help'
-  echo -e '  mycompose edit <COMPOSE> -vi  \tEdit docker-compose.yml with vi'
-  echo -e '  mycompose edit <COMPOSE> -nano  \tEdit docker-compose.yml with vi'
-  echo -e '  mycompose create <COMPOSE>'
-  echo -e '  mycompose check  \t\t\tCheck all of your docker-compose\n  mycompose check <COMPOSE>  \t\tCheck for provided COMPOSE'
-  echo -e '  mycompose discord_update <webhook_url>'
-  echo -e '  mycompose compatibility  \t\tCompatibility all of your docker-compose\n  mycompose compatibility <COMPOSE>  \tCompatibility for provided COMPOSE'
-  echo -e '  mycompose info  \t\t\tInfo all of your docker-compose\n  mycompose info <COMPOSE>  \t\tInfo for provided COMPOSE'
-  echo -e '  mycompose list  \t\t\tList all of your docker-compose'
-  echo -e '  mycompose setdir <FULLPATH> \t\tAdd or change docker-compose root dir\n  mycompose setdir delete  \t\tDelete existing setdir'
-  echo -e '  mycompose start <COMPOSE>'
-  echo -e '  mycompose stop <COMPOSE>'
-  echo -e '  mycompose logs <COMPOSE>'
-  echo -e '  mycompose update <COMPOSE>\n  mycompose update_force <COMPOSE> \tForce update without check : NOT RECOMMENDED'
-  echo -e '  mycompose restore <COMPOSE>'
-  echo -e '  mycompose resume <COMPOSE>'
+    cat << EOT
+Usage: $SCRIPT_COMMAND COMMAND [COMPOSE] [OPTION]
+
+COMPOSE: Name of your docker-compose directory name
+OPTION: Additionnal option for COMMAND see bellow
+COMMAND:
+  help			Provide help about commands
+  create		Create the template directory for a new docker-compose
+  check			Check update images for docker-compose
+  compatibility		Check compatibility for upadate, restore and resume command
+  discord_update	Send Discord webhook for available update
+  edit			Edit docker-compose.yml with vi or nano
+  info			Check State and running images
+  list			List all available docker-compose to manage
+  setdir		Set root docker-compose directory usefull (not recommended)
+  start			Execute a docker-compose up -d
+  stop			Execute a docker-compose down
+  logs			Execute a docker-compose logs -f
+  update		Update a docker-compose after checking compatibility and new-images (check).
+			The Update command is making a backup of image version and volume
+  update_force		Update command without checks NOT RECOMMENDED
+  restore		Rollback if previous update break your docker-compose
+			It will fix your docker compose to a specific version use resume to go back to previous TAGS'
+			It Will create and appdata directory with docker-compose to save modification since the update
+  resume		Resume to Initial TAG useful only after a restore and a known new version will not break your docker-compose
+---
+EXEMPLE:
+  $SCRIPT_COMMAND help
+  $SCRIPT_COMMAND edit <COMPOSE> -vi		Edit docker-compose.yml with vi
+  $SCRIPT_COMMAND edit <COMPOSE> -nano	Edit docker-compose.yml with nano
+  $SCRIPT_COMMAND create <COMPOSE>
+  $SCRIPT_COMMAND discord_update <webhook_url>
+  $SCRIPT_COMMAND compatibility		Compatibility all of your docker-compose
+  $SCRIPT_COMMAND compatibility <COMPOSE>	Compatibility for provided COMPOSE
+  $SCRIPT_COMMAND info			Info all of your docker-compose
+  $SCRIPT_COMMAND info <COMPOSE>		Info for provided COMPOSE
+  $SCRIPT_COMMAND list			List all of your docker-compose
+  $SCRIPT_COMMAND start <COMPOSE>
+  $SCRIPT_COMMAND stop <COMPOSE>
+  $SCRIPT_COMMAND logs <COMPOSE>
+  $SCRIPT_COMMAND update <COMPOSE>
+  $SCRIPT_COMMAND restore <COMPOSE>
+  $SCRIPT_COMMAND resume <COMPOSE>
+EOT
 }
 
 function setdir {
@@ -133,7 +138,6 @@ function edit {
     vi ${DOCKER_DIR}/${COMPOSE}/$COMPOSE_LOC
   fi
 }
-
 
 function create {
   echo "---"
@@ -417,6 +421,11 @@ function initial_check {
       exit 1
     fi
   done
+
+  # Check id user can execute docker command
+  if ! (groups "$USER" | grep -q "\bdocker\b"); then
+    check_admin
+  fi
 
   ##Check for docker compose in CLI Plugin or command docker-compose
   CHECK_DOCKER_COMPOSE=$(docker compose version 2>/dev/null)
